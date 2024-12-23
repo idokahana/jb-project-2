@@ -88,8 +88,8 @@
   showLoader();
 
   try {
-    const coins = await getData("https://api.coingecko.com/api/v3/coins/list");
-    // const coins = await getData("assets/json/file.json");
+    // const coins = await getData("https://api.coingecko.com/api/v3/coins/list");
+    const coins = await getData("assets/json/file.json");
     const firstHundredCoins = coins.slice(0, 100);
     const newHTML = await getCoinHTML(firstHundredCoins);
     renderAllCoins(newHTML);
