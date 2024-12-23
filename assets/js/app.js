@@ -17,22 +17,57 @@
     } while (!isSuccess);
   };
 
-  // const getAllCoins = async () => getData('https://api.coingecko.com/api/v3/coins/list')
-  const getAllCoins = async () => getData("assets/json/coins.json");
-  const getSingleCoin = async (coin) =>
-    fetchRetry(`https://api.coingecko.com/api/v3/coins/${coin}`);
-  const getGraphData = async (coins) =>
-    getData(
-      `https://min-api.cryptocompare.com/data/pricemulti?fsyms=${coins.join(
-        ","
-      )}&tsyms=USD`
-    );
+  const getCoinHTML = (coins) => {
+    return coins
+      .map((coin) => {
+        const { id, symbol, name } = coin;
+
+        return `
+      <div class="card" id="${id}">
+      <div class="card-body">
+        <div class="switchFlex">
+          <h5 class="card-title">${symbol}</h5>
+          <div class="form-check form-switch">
+            <input
+              class="form-check-input"
+              type="checkbox"
+              role="switch"
+              id="flexSwitchCheckDefault"
+            />
+          </div>
+        </div>
+        <p class="card-text">
+          ${name}
+        </p>
+        <a href="#" class="btn btn-primary">Go somewhere</a>
+      </div>
+    </div>
+    `;
+      })
+      .reduce((cum, cur) => cum + cur, "");
+  };
+
+  const renderAllCoins = (newHTML) => {
+    document.getElementById(`coinMain`).innerHTML = newHTML;
+  };
+
+  const getAllCoins = async () =>
+    getData("https://api.coingecko.com/api/v3/coins/list");
+
+  // const getSingleCoin = async (coin) =>
+  //   fetchRetry(`https://api.coingecko.com/api/v3/coins/${coin}`);
+  // const getGraphData = async (coins) =>
+  //   getData(
+  //     `https://min-api.cryptocompare.com/data/pricemulti?fsyms=${coins.join(
+  //       ","
+  //     )}&tsyms=USD`
+  //   );
 
   const coins = await getAllCoins();
-  console.log(coins);
+  const firstHundredCoins = coins.splice(0, 100);
+  const newHTML = getCoinHTML(firstHundredCoins);
+  renderAllCoins(newHTML);
 
   // const btcData = await getSingleCoin('bitcoin')
   // const graphData = await getGraphData(['BTC','ETH'])
-  // console.log(btcData)
-  // console.log(graphData)
 })();
