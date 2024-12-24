@@ -4,7 +4,8 @@
   const getData = (url) => fetch(url).then((response) => response.json());
 
   const getCoinDetails = async (id) =>
-    getData(`https://api.coingecko.com/api/v3/coins/${id}`);
+    // getData(`https://api.coingecko.com/api/v3/coins/${id}`);
+    getData(`assets/coins/${id}`);
 
   const showLoader = () => {
     document.getElementById("loader").style.display = "block";
@@ -14,6 +15,38 @@
     document.getElementById("loader").style.display = "none";
   };
 
+  const getCurrentTime = () => {
+    const now = new Date();
+    const hours = now.getHours().toString().padStart(2, "0");
+    const minutes = now.getMinutes().toString().padStart(2, "0");
+    return `${hours}:${minutes}`;
+  };
+
+  const saveToLocalStorage = (coinObj) => {
+    let selectedCoins = JSON.parse(localStorage.getItem("selectedCoins")) || [];
+    const coinExists = selectedCoins.find((coin) => coin.id === coinObj.id);
+    if (!coinExists) {
+      const time = getCurrentTime();
+      const {
+        id,
+        image: { small },
+        market_data: {
+          current_price: { usd, eur, ils },
+        },
+      } = coinObj;
+      selectedCoins.push({ id, small, usd, eur, ils, time });
+    } else {
+      selectedCoins = selectedCoins.filter((coin) => coin.id !== coinObj.id);
+    }
+    localStorage.setItem("selectedCoins", JSON.stringify(selectedCoins));
+  };
+
+  const isCoinSelected = (coinId) => {
+    const selectedCoins =
+      JSON.parse(localStorage.getItem("selectedCoins")) || [];
+    return selectedCoins.some((coin) => coin.id === coinId);
+  };
+
   const getCoinHTML = async (coins) => {
     const promises = coins.map(async (coin) => {
       const { id, symbol, name } = coin;
@@ -21,7 +54,6 @@
         const details = await getCoinDetails(id);
         const {
           image: { small },
-
           market_data: {
             current_price: { usd, eur, ils },
           },
@@ -37,6 +69,7 @@
                     class="form-check-input"
                     type="checkbox"
                     role="switch"
+                    ${isCoinSelected(id) ? `checked` : ""}
                   />
                 </div>
               </div>
@@ -57,7 +90,17 @@
         return `
           <div class="card" id="${id}">
             <div class="card-body">
-              <h5 class="card-title">${symbol.toUpperCase()}</h5>
+              <div class="switchFlex">
+                <h5 class="card-title">${symbol.toUpperCase()}</h5>
+                <div class="form-check form-switch">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    role="switch"
+                    ${isCoinSelected(id) ? `checked` : ""}
+                  />
+                </div>
+              </div>
               <p class="card-text">${name}</p>
               <p class="text-danger">Failed to load additional details</p>
             </div>
@@ -73,6 +116,7 @@
   const renderAllCoins = (newHTML) => {
     document.getElementById("coinMain").innerHTML = newHTML;
     activatePopovers();
+    setupToggleButtons(newHTML);
   };
 
   const activatePopovers = () => {
@@ -85,16 +129,63 @@
       });
     });
   };
+
+  const handleSearch = async (searchTerm, allCoins) => {
+    const filteredCoins = allCoins.filter((coin) => {
+      const { name, symbol } = coin;
+      return (
+        name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        symbol.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    });
+    if (filteredCoins.length === 0) {
+      const myToast = new bootstrap.Toast(
+        document.getElementById("emptyToast")
+      );
+      myToast.show();
+      showLoader();
+      setTimeout(async () => {
+        const firstHundredCoins = allCoins.slice(0, 100);
+        const newHTML = await getCoinHTML(firstHundredCoins);
+        renderAllCoins(newHTML);
+        hideLoader();
+      }, 1500);
+    }
+    const newHTML = await getCoinHTML(filteredCoins);
+    renderAllCoins(newHTML);
+  };
+
+  let allCoins = [];
   showLoader();
 
+  const setupToggleButtons = () => {
+    const toggleButtons = document.querySelectorAll(".form-check-input");
+
+    toggleButtons.forEach((button) => {
+      button.addEventListener("change", async (event) => {
+        const coinId = event.target.closest(".card").id;
+        const coinObj = await getCoinDetails(coinId);
+        console.log(coinObj);
+        saveToLocalStorage(coinObj);
+      });
+    });
+  };
   try {
-    // const coins = await getData("https://api.coingecko.com/api/v3/coins/list");
-    const coins = await getData("assets/json/file.json");
-    const firstHundredCoins = coins.slice(0, 100);
+    allCoins = await getData("assets/json/file.json");
+
+    const firstHundredCoins = allCoins.slice(0, 100);
     const newHTML = await getCoinHTML(firstHundredCoins);
     renderAllCoins(newHTML);
     hideLoader();
+
+    document.getElementById("searchBtn").addEventListener("click", (event) => {
+      event.preventDefault();
+      let searchInput = document.getElementById(`searchInput`);
+      handleSearch(searchInput.value, allCoins);
+      searchInput.value = "";
+    });
   } catch (e) {
+    console.warn(e);
     const myToast = new bootstrap.Toast(document.getElementById("myToast"));
     myToast.show();
     setTimeout(() => {

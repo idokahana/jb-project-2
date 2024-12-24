@@ -61,12 +61,17 @@
           <div class="container-fluid">
             <form class="d-flex" role="search">
               <input
+                id="searchInput"
                 class="form-control me-2"
                 type="search"
                 placeholder="Search"
                 aria-label="Search"
               />
-              <button class="btn btn-outline-primary" type="submit">
+              <button
+                id="searchBtn"
+                class="btn btn-outline-primary"
+                type="submit"
+              >
                 Search
               </button>
             </form>
@@ -124,6 +129,29 @@
         <div class="toast-body">
           Chill Down man !<br />
           Reloading please wait...
+        </div>
+      </div>
+    </div>
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+      <div
+        id="emptyToast"
+        class="toast"
+        role="alert"
+        aria-live="assertive"
+        aria-atomic="true"
+      >
+        <div class="toast-header">
+          <strong class="me-auto">Error</strong>
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="toast"
+            aria-label="Close"
+          ></button>
+        </div>
+        <div class="toast-body">
+          No such currency !<br />
+          Please try agin
         </div>
       </div>
     </div>
