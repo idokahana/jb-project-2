@@ -11,24 +11,23 @@
     document.getElementById("loader").style.display = "block";
   };
 
-  const hideLoader = () => {
-    document.getElementById("loader").style.display = "none";
-  };
+  const hideLoader = () =>
+    (document.getElementById("loader").style.display = "none");
 
   const getCurrentTime = () => {
     const now = new Date();
-    const hours = now.getHours().toString().padStart(2, "0");
-    const minutes = now.getMinutes().toString().padStart(2, "0");
-    return `${hours}:${minutes}`;
+    const hours = now.getHours();
+    const minutes = now.getMinutes();
+    return hours * 60 + minutes;
   };
 
   const saveToLocalStorage = (coinObj) => {
     let selectedCoins = JSON.parse(localStorage.getItem("selectedCoins")) || [];
     const coinExists = selectedCoins.find((coin) => coin.id === coinObj.id);
+    const id = coinObj.id;
     if (!coinExists) {
       const time = getCurrentTime();
       const {
-        id,
         image: { small },
         market_data: {
           current_price: { usd, eur, ils },
@@ -38,7 +37,16 @@
     } else {
       selectedCoins = selectedCoins.filter((coin) => coin.id !== coinObj.id);
     }
-    localStorage.setItem("selectedCoins", JSON.stringify(selectedCoins));
+    if (selectedCoins.length <= 5) {
+      localStorage.setItem("selectedCoins", JSON.stringify(selectedCoins));
+    } else {
+      const checkbox = document.getElementById(`${id}check`);
+      checkbox.checked = false;
+      const myToast = new bootstrap.Toast(
+        document.getElementById("lengthToast")
+      );
+      myToast.show();
+    }
   };
 
   const isCoinSelected = (coinId) => {
@@ -47,25 +55,43 @@
     return selectedCoins.some((coin) => coin.id === coinId);
   };
 
-  const getCoinHTML = async (coins) => {
-    const promises = coins.map(async (coin) => {
-      const { id, symbol, name } = coin;
-      try {
-        const details = await getCoinDetails(id);
-        const {
-          image: { small },
-          market_data: {
-            current_price: { usd, eur, ils },
-          },
-        } = details;
+  const fetchCoinDetails = async (id) => {
+    const details = await getCoinDetails(id);
+    return {
+      small: details.image.small,
+      usd: details.market_data.current_price.usd,
+      eur: details.market_data.current_price.eur,
+      ils: details.market_data.current_price.ils,
+    };
+  };
 
+  const getCoinHTML = async (coins) => {
+    const selectedCoins =
+      JSON.parse(localStorage.getItem("selectedCoins")) || [];
+
+    const promises = coins.map(async (coin) => {
+      let { id, symbol, name } = coin;
+      let small, usd, eur, ils;
+      try {
+        const coinData = selectedCoins.find((coin) => coin.id === id);
+
+        if (
+          isCoinSelected(id) &&
+          coinData &&
+          getCurrentTime() - coinData.time <= 2
+        ) {
+          ({ small, usd, eur, ils } = coinData);
+        } else {
+          ({ small, usd, eur, ils } = await fetchCoinDetails(id));
+        }
         return `
           <div class="card" id="${id}">
             <div class="card-body">
               <div class="switchFlex">
                 <h5 class="card-title">${symbol.toUpperCase()}</h5>
-                <div class="form-check form-switch">
+                <div class="form-check form-switch" >
                   <input
+                  id="${id}check"
                     class="form-check-input"
                     type="checkbox"
                     role="switch"
@@ -92,8 +118,9 @@
             <div class="card-body">
               <div class="switchFlex">
                 <h5 class="card-title">${symbol.toUpperCase()}</h5>
-                <div class="form-check form-switch">
+                <div class="form-check form-switch >
                   <input
+                  id="${id}check"
                     class="form-check-input"
                     type="checkbox"
                     role="switch"
@@ -165,7 +192,6 @@
       button.addEventListener("change", async (event) => {
         const coinId = event.target.closest(".card").id;
         const coinObj = await getCoinDetails(coinId);
-        console.log(coinObj);
         saveToLocalStorage(coinObj);
       });
     });
