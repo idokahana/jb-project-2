@@ -28,12 +28,13 @@
     if (!coinExists) {
       const time = getCurrentTime();
       const {
+        symbol,
         image: { small },
         market_data: {
           current_price: { usd, eur, ils },
         },
       } = coinObj;
-      selectedCoins.push({ id, small, usd, eur, ils, time });
+      selectedCoins.push({ id, small, usd, eur, ils, time, symbol });
     } else {
       selectedCoins = selectedCoins.filter((coin) => coin.id !== coinObj.id);
     }
@@ -192,14 +193,16 @@
       button.addEventListener("change", async (event) => {
         const coinId = event.target.closest(".card").id;
         const coinObj = await getCoinDetails(coinId);
+
         saveToLocalStorage(coinObj);
       });
     });
   };
   try {
-    allCoins = await getData("assets/json/file.json");
+    allCoins = await getData("assets/json/file.json"); //working locale
+    // allCoins = await getData("https://api.coingecko.com/api/v3/coins/list"); // working with api
 
-    const firstHundredCoins = allCoins.slice(0, 100);
+    const firstHundredCoins = allCoins.slice(0, 6);
     const newHTML = await getCoinHTML(firstHundredCoins);
     renderAllCoins(newHTML);
     hideLoader();
@@ -216,6 +219,67 @@
     myToast.show();
     setTimeout(() => {
       location.reload();
-    }, 45000);
+    }, 60000);
   }
+
+  const getCurrenciesSymbols = () => {
+    const selectedCoins =
+      JSON.parse(localStorage.getItem("selectedCoins")) || [];
+    return selectedCoins.map((coin) => coin.symbol).join(",");
+  };
+  // ///
+
+  const CoinGraphData = (objectCoinGraphData) => {
+    if (!window.xValues) window.xValues = [];
+    if (!window.datasetsMap) window.datasetsMap = {};
+    const currentTime = new Date().toLocaleTimeString();
+    window.xValues.push(currentTime);
+
+    Object.entries(objectCoinGraphData).forEach(([symbol, data]) => {
+      const { USD } = data;
+
+      if (!window.datasetsMap[symbol]) {
+        window.datasetsMap[symbol] = [];
+      }
+
+      window.datasetsMap[symbol].push(USD);
+    });
+
+    const newDatasets = Object.keys(window.datasetsMap).map(
+      (symbol, index) => ({
+        label: symbol.toUpperCase(),
+        data: window.datasetsMap[symbol],
+        borderColor: getColor(index),
+        fill: false,
+      })
+    );
+
+    new Chart("myChart", {
+      type: "line",
+      data: {
+        labels: window.xValues,
+        datasets: newDatasets,
+      },
+    });
+  };
+
+  const getColor = (index) => {
+    const colors = ["red", "green", "blue", "orange", "purple"];
+    return colors[index % colors.length];
+  };
+  const fetchCoinGraphData = async () => {
+    return await getData(
+      `https://min-api.cryptocompare.com/data/pricemulti?fsyms=${getCurrenciesSymbols()}&tsyms=USD`
+      // `https://5owv3.wiremockapi.cloud/json/1`
+    );
+  };
+
+  const initialObjectCoinGraphData = await fetchCoinGraphData();
+  CoinGraphData(initialObjectCoinGraphData);
+
+  setInterval(async () => {
+    const objectCoinGraphData = await fetchCoinGraphData();
+
+    CoinGraphData(objectCoinGraphData);
+  }, 10000);
 })();
