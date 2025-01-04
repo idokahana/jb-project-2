@@ -93,6 +93,7 @@
       >
         <main id="coinMain"></main>
       </div>
+
       <div
         class="tab-pane fade"
         id="profile-tab-pane"
@@ -102,6 +103,7 @@
       >
         <canvas id="myChart" style="width: 100%; max-width: 700px"></canvas>
       </div>
+
       <div
         class="tab-pane fade"
         id="contact-tab-pane"
@@ -109,7 +111,18 @@
         aria-labelledby="contact-tab"
         tabindex="0"
       >
-        this is about page
+        <h2>About Me</h2>
+        <p>Here are some basic details about me:</p>
+        <ul class="info-list">
+          <li><strong>Name:</strong> Ido Kahana</li>
+          <li><strong>Age:</strong> 22</li>
+          <li><strong>Favorite Hobby:</strong> Boat sailing</li>
+          <li>
+            <strong>Profession:</strong> Currently learning Programming in John
+            Bryce
+          </li>
+          <li><strong>Location:</strong> Hedera, Israel</li>
+        </ul>
       </div>
     </div>
 
@@ -159,9 +172,10 @@
         </div>
       </div>
     </div>
+
     <div class="toast-container position-fixed bottom-0 end-0 p-3">
       <div
-        id="lengthToast"
+        id="graphToast"
         class="toast"
         role="alert"
         aria-live="assertive"
@@ -176,9 +190,43 @@
             aria-label="Close"
           ></button>
         </div>
-        <div class="toast-body">you can add up to 5 coins at once !</div>
+        <div class="toast-body">no coin selected !</div>
       </div>
     </div>
+    <div
+      class="modal fade"
+      id="selectedCoinsModal"
+      tabindex="-1"
+      aria-labelledby="selectedCoinsModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="selectedCoinsModalLabel">
+              Selected Coins
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body"></div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div id="loader"></div>
   </body>
 </html>

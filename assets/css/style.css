@@ -6,6 +6,62 @@ body {
   box-sizing: border-box;
 }
 
+/* About Me Section Styles */
+.info-list {
+  list-style: none;
+  padding: 0;
+  margin: 20px 0;
+}
+
+.info-list li {
+  padding: 12px;
+  margin-bottom: 10px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s ease;
+}
+
+.info-list li:hover {
+  transform: translateX(5px);
+  background-color: #e9ecef;
+}
+
+.info-list strong {
+  color: #2c3e50;
+  margin-right: 10px;
+  font-weight: 600;
+}
+
+#contact-tab-pane {
+  padding: 25px;
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+#contact-tab-pane h2 {
+  color: #1a73e8;
+  margin-bottom: 15px;
+  font-size: 1.8rem;
+  border-bottom: 2px solid #e0e0e0;
+  padding-bottom: 10px;
+}
+
+#contact-tab-pane p {
+  color: #666;
+  font-size: 1.1rem;
+  margin-bottom: 20px;
+}
+
+.info-list strong {
+  margin-right: 0;
+  margin-left: 10px;
+}
+
+.info-list li:hover {
+  transform: translateX(-5px);
+}
 #myTabContent {
   height: 100%;
   display: flex;

@@ -1,6 +1,7 @@
 "use strict";
 
 (async () => {
+  let lastAttemptedCoin;
   const getData = (url) => fetch(url).then((response) => response.json());
 
   const getCoinDetails = async (id) =>
@@ -20,7 +21,6 @@
     const minutes = now.getMinutes();
     return hours * 60 + minutes;
   };
-
   const saveToLocalStorage = (coinObj) => {
     let selectedCoins = JSON.parse(localStorage.getItem("selectedCoins")) || [];
     const coinExists = selectedCoins.find((coin) => coin.id === coinObj.id);
@@ -40,13 +40,12 @@
     }
     if (selectedCoins.length <= 5) {
       localStorage.setItem("selectedCoins", JSON.stringify(selectedCoins));
+      lastAttemptedCoin;
     } else {
       const checkbox = document.getElementById(`${id}check`);
       checkbox.checked = false;
-      const myToast = new bootstrap.Toast(
-        document.getElementById("lengthToast")
-      );
-      myToast.show();
+      lastAttemptedCoin = coinObj;
+      showSelectedCoinsModal();
     }
   };
 
@@ -58,6 +57,7 @@
 
   const fetchCoinDetails = async (id) => {
     const details = await getCoinDetails(id);
+
     return {
       small: details.image.small,
       usd: details.market_data.current_price.usd,
@@ -85,6 +85,8 @@
         } else {
           ({ small, usd, eur, ils } = await fetchCoinDetails(id));
         }
+
+        console.log(coinData);
         return `
           <div class="card" id="${id}">
             <div class="card-body">
@@ -202,7 +204,7 @@
     allCoins = await getData("assets/json/file.json"); //working locale
     // allCoins = await getData("https://api.coingecko.com/api/v3/coins/list"); // working with api
 
-    const firstHundredCoins = allCoins.slice(0, 6);
+    const firstHundredCoins = allCoins.slice(0, 100);
     const newHTML = await getCoinHTML(firstHundredCoins);
     renderAllCoins(newHTML);
     hideLoader();
@@ -222,19 +224,28 @@
     }, 60000);
   }
 
+  document.getElementById("profile-tab").addEventListener("click", async () => {
+    window.xValues = [];
+    window.datasetsMap = {};
+
+    const initialObjectCoinGraphData = await fetchCoinGraphData();
+    CoinGraphData(initialObjectCoinGraphData);
+    setInterval(async () => {
+      const objectCoinGraphData = await fetchCoinGraphData();
+      CoinGraphData(objectCoinGraphData);
+    }, 5000);
+  });
   const getCurrenciesSymbols = () => {
     const selectedCoins =
       JSON.parse(localStorage.getItem("selectedCoins")) || [];
     return selectedCoins.map((coin) => coin.symbol).join(",");
   };
-  // ///
 
   const CoinGraphData = (objectCoinGraphData) => {
     if (!window.xValues) window.xValues = [];
     if (!window.datasetsMap) window.datasetsMap = {};
     const currentTime = new Date().toLocaleTimeString();
     window.xValues.push(currentTime);
-
     Object.entries(objectCoinGraphData).forEach(([symbol, data]) => {
       const { USD } = data;
 
@@ -245,6 +256,11 @@
       window.datasetsMap[symbol].push(USD);
     });
 
+    const getColor = (index) => {
+      const colors = ["red", "green", "blue", "orange", "purple"];
+      return colors[index % colors.length];
+    };
+
     const newDatasets = Object.keys(window.datasetsMap).map(
       (symbol, index) => ({
         label: symbol.toUpperCase(),
@@ -253,33 +269,123 @@
         fill: false,
       })
     );
+    if (newDatasets.length >= 7) {
+      const myToast = new bootstrap.Toast(
+        document.getElementById("graphToast")
+      );
+      myToast.show();
+    } else {
+      if (window.chart) {
+        window.chart.data.labels = window.xValues;
+        window.chart.data.datasets = newDatasets;
+        window.chart.update();
+      } else {
+        window.chart = new Chart("myChart", {
+          type: "line",
+          data: {
+            labels: window.xValues,
+            datasets: newDatasets,
+          },
+        });
+      }
+    }
+  };
 
-    new Chart("myChart", {
-      type: "line",
-      data: {
-        labels: window.xValues,
-        datasets: newDatasets,
-      },
+  const fetchCoinGraphData = async () =>
+    await getData(
+      `https://min-api.cryptocompare.com/data/pricemulti?fsyms=${getCurrenciesSymbols()}&tsyms=USD`
+    );
+  const showSelectedCoinsModal = () => {
+    const selectedCoins =
+      JSON.parse(localStorage.getItem("selectedCoins")) || [];
+    const modalBody = document.querySelector("#selectedCoinsModal .modal-body");
+
+    modalBody.innerHTML = `
+    <p class="text-info mb-3">Please remove one coin to add ${lastAttemptedCoin.symbol.toUpperCase()}</p>
+    ${selectedCoins
+      .map(
+        (coin) => `
+      <div class="selected-coin-item d-flex justify-content-between align-items-center mb-2">
+        <div class="d-flex align-items-center">
+          <img src="${coin.small}" alt="${
+          coin.symbol
+        }" style="width: 30px; height: 30px; margin-right: 10px;">
+          <span>${coin.symbol.toUpperCase()} - $${coin.usd}</span>
+        </div>
+        <button class="btn btn-danger btn-sm remove-coin" data-coin-id="${
+          coin.id
+        }">Remove</button>
+      </div>
+    `
+      )
+      .join("")}
+  `;
+
+    const myModal = new bootstrap.Modal(
+      document.getElementById("selectedCoinsModal")
+    );
+    myModal.show();
+  };
+
+  const setupModalListeners = () => {
+    document.querySelectorAll(".remove-coin").forEach((button) => {
+      button.addEventListener("click", async (event) => {
+        const coinId = event.target.dataset.coinId;
+        let selectedCoins =
+          JSON.parse(localStorage.getItem("selectedCoins")) || [];
+        selectedCoins = selectedCoins.filter((coin) => coin.id !== coinId);
+        localStorage.setItem("selectedCoins", JSON.stringify(selectedCoins));
+
+        const removedCoinCheckbox = document.getElementById(`${coinId}check`);
+        if (removedCoinCheckbox) removedCoinCheckbox.checked = false;
+        if (lastAttemptedCoin) {
+          const time = getCurrentTime();
+          const {
+            id,
+            symbol,
+            image: { small },
+            market_data: {
+              current_price: { usd, eur, ils },
+            },
+          } = lastAttemptedCoin;
+
+          selectedCoins.push({ id, small, usd, eur, ils, time, symbol });
+          localStorage.setItem("selectedCoins", JSON.stringify(selectedCoins));
+
+          const newCoinCheckbox = document.getElementById(`${id}check`);
+          if (newCoinCheckbox) newCoinCheckbox.checked = true;
+
+          lastAttemptedCoin = null;
+        }
+
+        const myModal = bootstrap.Modal.getInstance(
+          document.getElementById("selectedCoinsModal")
+        );
+        myModal.hide();
+
+        const firstHundredCoins = allCoins.slice(0, 100);
+        const newHTML = await getCoinHTML(firstHundredCoins);
+        renderAllCoins(newHTML);
+      });
     });
   };
 
-  const getColor = (index) => {
-    const colors = ["red", "green", "blue", "orange", "purple"];
-    return colors[index % colors.length];
-  };
-  const fetchCoinGraphData = async () => {
-    return await getData(
-      `https://min-api.cryptocompare.com/data/pricemulti?fsyms=${getCurrenciesSymbols()}&tsyms=USD`
-      // `https://5owv3.wiremockapi.cloud/json/1`
-    );
-  };
+  const modalBodyObserver = new MutationObserver(() => {
+    setupModalListeners();
+  });
+  ///
 
-  const initialObjectCoinGraphData = await fetchCoinGraphData();
-  CoinGraphData(initialObjectCoinGraphData);
+  modalBodyObserver.observe(
+    document.querySelector("#selectedCoinsModal .modal-body"),
+    {
+      childList: true,
+      subtree: true,
+    }
+  );
 
-  setInterval(async () => {
-    const objectCoinGraphData = await fetchCoinGraphData();
-
-    CoinGraphData(objectCoinGraphData);
-  }, 10000);
+  document
+    .getElementById("selectedCoinsModal")
+    .addEventListener("hidden.bs.modal", () => {
+      lastAttemptedCoin = null;
+    });
 })();
