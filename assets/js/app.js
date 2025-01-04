@@ -5,8 +5,8 @@
   const getData = (url) => fetch(url).then((response) => response.json());
 
   const getCoinDetails = async (id) =>
-    // getData(`https://api.coingecko.com/api/v3/coins/${id}`);
-    getData(`assets/coins/${id}`);
+    getData(`https://api.coingecko.com/api/v3/coins/${id}`);
+  // getData(`assets/coins/${id}`);
 
   const showLoader = () => {
     document.getElementById("loader").style.display = "block";
@@ -201,8 +201,8 @@
     });
   };
   try {
-    allCoins = await getData("assets/json/file.json"); //working locale
-    // allCoins = await getData("https://api.coingecko.com/api/v3/coins/list"); // working with api
+    // allCoins = await getData("assets/json/file.json"); //working locale
+    allCoins = await getData("https://api.coingecko.com/api/v3/coins/list"); // working with api
 
     const firstHundredCoins = allCoins.slice(0, 100);
     const newHTML = await getCoinHTML(firstHundredCoins);
@@ -373,7 +373,6 @@
   const modalBodyObserver = new MutationObserver(() => {
     setupModalListeners();
   });
-  ///
 
   modalBodyObserver.observe(
     document.querySelector("#selectedCoinsModal .modal-body"),
